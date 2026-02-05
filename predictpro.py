@@ -20,6 +20,25 @@ except ImportError:
 class SmartPredictor:
     def __init__(self):
         self.reset_data()
+        # 创建Session保持连接
+        self.session = requests.Session()
+        self._setup_session()
+
+    def _setup_session(self):
+        """配置session的请求头"""
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"'
+        })
 
     def reset_data(self):
         self.number_history = []
@@ -479,32 +498,26 @@ class SmartPredictor:
         return "\n".join(stats_lines)
 
     def fetch_latest_number(self, url="https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json", timeout=10):
-        """从API爬取最新的 number 值"""
-        try:
-            # 设置请求头，模拟浏览器请求以避免403错误
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Referer': 'https://draw.ar-lottery01.com/',
-                'Origin': 'https://draw.ar-lottery01.com',
-                'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin'
-            }
-            response = requests.get(url, headers=headers, timeout=timeout, verify=True)
-            response.raise_for_status()
-            text = response.text
-            # 使用正则表达式提取第一个（最新的）number 值
-            match = re.search(r'"number"\s*:\s*"(\d+)"', text)
-            if match:
-                return int(match.group(1))
-        except requests.exceptions.RequestException as e:
-            print(f"爬虫错误: {e}")
-        except Exception as e:
-            print(f"解析错误: {e}")
+        """从API爬取最新的 number 值，带重试机制"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # 使用session发送请求（保持连接状态）
+                response = self.session.get(url, timeout=timeout, verify=False)
+                response.raise_for_status()
+                text = response.text
+                # 使用正则表达式提取第一个（最新的）number 值
+                match = re.search(r'"number"\s*:\s*"(\d+)"', text)
+                if match:
+                    return int(match.group(1))
+            except requests.exceptions.RequestException as e:
+                print(f"爬虫错误 (尝试 {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # 重试前等待
+                continue
+            except Exception as e:
+                print(f"解析错误: {e}")
+                return None
         return None
 
 
