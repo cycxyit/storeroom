@@ -6,6 +6,10 @@ import re
 import requests
 from datetime import datetime
 
+# 禁用SSL警告
+from urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 # 可选依赖：用于高级模型（LDA/GMM/Parzen）
 try:
     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
