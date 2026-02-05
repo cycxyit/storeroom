@@ -481,7 +481,20 @@ class SmartPredictor:
     def fetch_latest_number(self, url="https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json", timeout=10):
         """从API爬取最新的 number 值"""
         try:
-            response = requests.get(url, timeout=timeout)
+            # 设置请求头，模拟浏览器请求以避免403错误
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://draw.ar-lottery01.com/',
+                'Origin': 'https://draw.ar-lottery01.com',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin'
+            }
+            response = requests.get(url, headers=headers, timeout=timeout, verify=True)
             response.raise_for_status()
             text = response.text
             # 使用正则表达式提取第一个（最新的）number 值
